@@ -1,0 +1,58 @@
+const express = require('express');
+const cors = require('cors');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+require('dotenv').config();
+const port = process.env.PORT || 5000
+const app =express()
+// middle ware 
+app.use(cors())
+app.use(express.json())
+
+// mongodb connection
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.az5ds.mongodb.net/myFirstDatabase?retryWrites=true&w=majority`;
+
+const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
+
+
+async function run(){
+try{
+  await client.connect();
+  const servicesCollection = client.db("doctors_chamber").collection("services")
+  const bookingCollection = client.db("doctors_chamber").collection("booking")
+  app.get('/services', async(req,res)=>{
+    const query = {}
+    const cursor = servicesCollection.find(query);
+    const result = await cursor.toArray();
+    res.send(result)
+  })
+  // naming convention
+  // app.get('/booking') to get all data or more then one by using condition 
+  // app.get('/booking/:id') get a specific data
+  // app.post('/booking/') to post a data 
+  // app.patch('/booking/:id') update or insert a data 
+  // app.delete('/booking/:id') to delete a data
+  
+  app.post('/booking', async(req,res) =>{
+    const booking = req.body
+    const query = { treatment: booking.treatmentName, date: booking.date, patient: booking.patient}
+    const result = await bookingCollection.insertOne(booking)
+    res.send(result)
+  })
+
+
+}
+finally{
+  // client.close();
+
+}
+}
+run().catch(console.dir)
+
+
+
+app.get('/', ( req, res )=>{
+  res.send(' process success')
+})
+app.listen(port, ()=>{
+  console.log('listening to port', port);
+})
