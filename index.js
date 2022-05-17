@@ -14,6 +14,22 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+// to verify token 
+ const verifyToken = (req,res,next)=>{
+  const authHeader = req.headers.authorization
+  if(!authHeader){
+    return res.status(401).send({massage:'unauthorize entry'})
+  }
+  const token = authHeader.split(' ')[1]
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function(err, decoded) {
+    if(err){
+      return res.status(403).send({massage:'forbidden access'})
+    }
+    req.decoded =decoded
+    next()
+  });
+
+ }
 
 async function run(){
 try{
@@ -33,11 +49,17 @@ try{
   // app.post('/booking/') to post a data 
   // app.patch('/booking/:id') update or insert a data 
   // app.delete('/booking/:id') to delete a data
-  app.get('/booking', async(req,res) =>{
+  app.get('/booking',verifyToken, async(req,res) =>{
     const patient = req.query.patient
-    const query ={patient: patient}
-    const booking = await bookingCollection.find(query).toArray()
-    res.send(booking)
+    const decodedEmail = req.decoded.email
+ if(patient === decodedEmail){
+
+   const query ={patient: patient}
+   const booking = await bookingCollection.find(query).toArray()
+  return res.send(booking)
+ }else{
+  return res.status(403).send({massage:'forbidden access'})
+ }
   })
   
   app.post('/booking', async(req,res) =>{
@@ -52,7 +74,14 @@ try{
     }
   })
 
-    // user api start 
+
+
+  // user get api start 
+  app.get('/user', async(req, res) =>{
+    const users = await userCollection.find().toArray()
+    res.send(users)
+  })
+    // user put api start 
     app.put('/user/:email', async(req,res) =>{
       const email = req.params.email
       const user = req.body
@@ -62,7 +91,8 @@ try{
         $set:user
       };
       const result = await userCollection.updateOne(filter, updateDoc, options);
-      res.send(result)
+      const token = jwt.sign({ email: email }, process.env.ACCESS_TOKEN_SECRET);
+      res.send({result, token})
 
     })
     
