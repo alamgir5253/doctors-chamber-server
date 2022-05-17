@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 require('dotenv').config();
 const port = process.env.PORT || 5000
@@ -19,6 +20,7 @@ try{
   await client.connect();
   const servicesCollection = client.db("doctors_chamber").collection("services")
   const bookingCollection = client.db("doctors_chamber").collection("booking")
+  const userCollection = client.db("doctors_chamber").collection("user")
   app.get('/services', async(req,res)=>{
     const query = {}
     const cursor = servicesCollection.find(query);
@@ -48,8 +50,22 @@ try{
       const result = await bookingCollection.insertOne(booking)
     return res.send({success: true,result})
     }
-    
   })
+
+    // user api start 
+    app.put('/user/:email', async(req,res) =>{
+      const email = req.params.email
+      const user = req.body
+      const filter = { email:email};
+      const options = { upsert: true };
+      const updateDoc = {
+        $set:user
+      };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result)
+
+    })
+    
 
 
 }
