@@ -31,12 +31,24 @@ try{
   // app.post('/booking/') to post a data 
   // app.patch('/booking/:id') update or insert a data 
   // app.delete('/booking/:id') to delete a data
+  app.get('/booking', async(req,res) =>{
+    const patient = req.query.patient
+    const query ={patient: patient}
+    const booking = await bookingCollection.find(query).toArray()
+    res.send(booking)
+  })
   
   app.post('/booking', async(req,res) =>{
     const booking = req.body
-    const query = { treatment: booking.treatmentName, date: booking.date, patient: booking.patient}
-    const result = await bookingCollection.insertOne(booking)
-    res.send(result)
+    const query = { treatmentName: booking.treatmentName, date: booking.date, patient: booking.patient}
+    const exists = await bookingCollection.findOne(query)
+    if(exists){
+     return res.send({success:false, booking:exists})
+    }else{
+      const result = await bookingCollection.insertOne(booking)
+    return res.send({success: true,result})
+    }
+    
   })
 
 
